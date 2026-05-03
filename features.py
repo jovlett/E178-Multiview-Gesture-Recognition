@@ -173,40 +173,19 @@ X = StandardScaler().fit_transform(X)
 # plt.show()
 
 
-# then cluster (e.g. K-means) on X, not D
-Kideal_D = 4
-kmeans_D = KMeans(n_clusters=Kideal_D, n_init=10, random_state=0)
-labels_D = kmeans_D.fit_predict(D)
-
-Kideal = 4
+Kideal = 5
 kmeans = KMeans(n_clusters=Kideal, n_init=10, random_state=0)
 labels = kmeans.fit_predict(X)
 
-# X = build_feature_matrix(D)
 
-# # optional but recommended
-# from sklearn.preprocessing import StandardScaler
-# X = StandardScaler().fit_transform(X)
-
-# PCA projection (your new “main plot”)
-
-pca = PCA(n_components=2)
-X_2d = pca.fit_transform(X)
-
-plt.figure(figsize=(7,6))
-plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
-
-plt.xlabel("PC1")
-plt.ylabel("PC2")
-plt.title("Gestures in feature space (PCA)")
-plt.grid()
-plt.show()
+## K custers visualization ##
+# # PCA projection (your new “main plot”)
 
 # pca = PCA(n_components=2)
-# D_2d = pca.fit_transform(D)
+# X_2d = pca.fit_transform(X)
 
 # plt.figure(figsize=(7,6))
-# plt.scatter(D_2d[:, 0], D_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
+# plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
 
 # plt.xlabel("PC1")
 # plt.ylabel("PC2")
@@ -214,27 +193,14 @@ plt.show()
 # plt.grid()
 # plt.show()
 
-
-centroids_2d = pca.transform(kmeans.cluster_centers_)
-
-plt.figure(figsize=(7,6))
-plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.6)
-plt.scatter(centroids_2d[:, 0], centroids_2d[:, 1], c='black', s=150, marker='x')
-
-plt.title("Clusters + centroids, PCA space K={}".format(Kideal))
-plt.savefig(os.path.join(FIG_DIR, "kmeans_visual_feature.png"), dpi=300, bbox_inches='tight')
-# plt.show()
-
-# from sklearn.manifold import TSNE
-
-# tsne = TSNE(n_components=2, perplexity=30, random_state=0)
-# X_tsne = tsne.fit_transform(X)
+# centroids_2d = pca.transform(kmeans.cluster_centers_)
 
 # plt.figure(figsize=(7,6))
-# plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=labels, cmap='tab10', alpha=0.7)
+# plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.6)
+# plt.scatter(centroids_2d[:, 0], centroids_2d[:, 1], c='black', s=150, marker='x')
 
-# plt.title("t-SNE visualization of gestures")
-# plt.show()
+# plt.title("Clusters + centroids, PCA space K={}".format(Kideal))
+# plt.savefig(os.path.join(FIG_DIR, "kmeans_visual_feature.png"), dpi=300, bbox_inches='tight')
 
 
 # ── Plotting utilities ─────────────────────────────────────────────────────
@@ -326,8 +292,174 @@ def plot_clusters_as_hands(D, labels, K, samples_per_cluster=30, mode="2d"):
                 dpi=150, bbox_inches="tight", facecolor="#0d1117")
     plt.show()
 
+def mean_hand(D, idx):
+    """
+    Average hand shape for a cluster.
+    Centers each hand before averaging so palm offsets don't blur the shape.
+    Returns (21, 3) array.
+    """
+    centered = np.array([center_hand(row_to_points(D[i])) for i in idx])
+    return centered.mean(axis=0)  # (21, 3)
+
+
+def plot_average_gestures(D, labels, K, mode="2d"):
+    show_both = (mode == "both")
+    n_rows = 2 if show_both else 1
+
+    fig = plt.figure(figsize=(4 * K, 4 * n_rows), facecolor="#0d1117")
+
+    for k in range(K):
+        idx = np.where(labels == k)[0]
+        avg_pts = mean_hand(D, idx)  # (21, 3)
+
+        # ── 2D ──────────────────────────────────────────────────────────
+        if mode in ("2d", "both"):
+            ax2 = fig.add_subplot(n_rows, K, k + 1)
+            ax2.set_facecolor("#0d1117")
+            plot_hand_2d(avg_pts, ax2, alpha=0.95, lw=2.0)
+            ax2.set_title(f"Cluster {k}  (n={len(idx)})", color="white", fontsize=10)
+            ax2.set_aspect("equal")
+            ax2.axis("off")
+
+        # ── 3D ──────────────────────────────────────────────────────────
+        if mode in ("3d", "both"):
+            row_offset = 1 if show_both else 0
+            ax3 = fig.add_subplot(n_rows, K, row_offset * K + k + 1, projection="3d")
+            ax3.set_facecolor("#0d1117")
+            ax3.tick_params(colors="gray", labelsize=6)
+            plot_hand_3d(avg_pts, ax3, alpha=0.95, lw=2.0)
+            if mode == "3d":
+                ax3.set_title(f"Cluster {k}  (n={len(idx)})", color="white", fontsize=10)
+
+    # finger colour legend
+    for f, (name, color) in enumerate(zip(FINGER_PREFIXES.keys(), FINGER_COLORS)):
+        fig.text(0.01 + f * 0.08, 0.01, name, color=color, fontsize=8, ha="left", va="bottom")
+    fig.text(0.01 + 5 * 0.08, 0.01, "Palm", color="tomato", fontsize=8)
+
+    plt.suptitle("Average gesture per cluster", color="white", fontsize=13, y=1.01)
+    plt.tight_layout()
+    plt.savefig(f"{FIG_DIR}/clusters_average_{mode}.png",
+                dpi=150, bbox_inches="tight", facecolor="#0d1117")
+    plt.show()
+
+# Axis index pairs for each view
+VIEWS = {
+    "top": (1, 0),   # YX
+    "front":  (1, 2),   # YZ
+    "side":   (0, 2),   # XZ
+}
+
+def plot_hand_2d_proj(points, ax, axes=(0, 1), alpha=0.95, lw=2.0):
+    i, j = axes
+    base = 1
+    for f in range(5):
+        color = FINGER_COLORS[f]
+        finger_pts = points[base : base + 4]  # KNU1_B, KNU1_A, KNU2_A, KNU3_A
+
+        if f == 0:
+            # Thumb: skip KNU1_B, treat KNU1_A as the base knuckle
+            thumb_visible = finger_pts[1:]   # KNU1_A, KNU2_A, KNU3_A — (3, 3)
+            # dashed: palm → KNU1_A
+            ax.plot(
+                [points[0, i], thumb_visible[0, i]],
+                [points[0, j], thumb_visible[0, j]],
+                color=color, alpha=alpha * 0.6, lw=lw, linestyle="--",
+            )
+            # solid: KNU1_A → KNU2_A → KNU3_A
+            ax.plot(thumb_visible[:, i], thumb_visible[:, j],
+                    color=color, alpha=alpha, lw=lw)
+            ax.scatter(thumb_visible[:, i], thumb_visible[:, j],
+                       c=color, s=20, alpha=alpha, zorder=3)
+        else:
+            ax.plot(
+                [points[0, i], finger_pts[0, i]],
+                [points[0, j], finger_pts[0, j]],
+                color=color, alpha=alpha * 0.6, lw=lw, linestyle="--",
+            )
+            ax.plot(finger_pts[:, i], finger_pts[:, j],
+                    color=color, alpha=alpha, lw=lw)
+            ax.scatter(finger_pts[:, i], finger_pts[:, j],
+                       c=color, s=20, alpha=alpha, zorder=3)
+
+        base += 4
+
+    ax.scatter(points[0, i], points[0, j], c="tomato", s=40, zorder=4)
+
+def plot_average_gestures_multiview(D, labels, K):
+    """
+    For each cluster: 3 columns (front/side/top), one row per cluster.
+    """
+    view_names = list(VIEWS.keys())
+    n_views = len(view_names)
+
+    fig, axes = plt.subplots(
+        K, n_views,
+        figsize=(3.5 * n_views, 3.5 * K),
+        facecolor="#0d1117"
+    )
+
+    # ensure 2D indexing even for K=1
+    if K == 1:
+        axes = axes[np.newaxis, :]
+
+    axis_labels = {
+        "front": ("-Z →", "Y ↑"),
+        "side":  ("X →", "Y ↑"),
+        "top":   ("-Z →", "X ↑"),
+    }
+
+    for k in range(K):
+        idx = np.where(labels == k)[0]
+        avg_pts = mean_hand(D, idx)
+
+        for v, view_name in enumerate(view_names):
+            ax = axes[k, v]
+            ax.set_facecolor("#0d1117")
+            ax.set_aspect("equal")
+            ax.axis("off")
+
+            plot_hand_2d_proj(avg_pts, ax, axes=VIEWS[view_name])
+
+            # column header on top row only
+            if k == 0:
+                xl, yl = axis_labels[view_name]
+                ax.set_title(
+                    f"{view_name.capitalize()} view\n{xl}  {yl}",
+                    color="white", fontsize=10, pad=6
+                )
+
+            # cluster label on left column only
+            if v == 0:
+                ax.set_ylabel(
+                    f"Cluster {k}\n(n={len(idx)})",
+                    color="white", fontsize=9, rotation=0,
+                    labelpad=50, va="center"
+                )
+                ax.yaxis.set_label_position("left")
+                ax.axis("off")  # re-disable after ylabel
+
+    # finger legend
+    for f, (name, color) in enumerate(zip(FINGER_PREFIXES.keys(), FINGER_COLORS)):
+        fig.text(0.01 + f * 0.09, 0.005, name, color=color,
+                 fontsize=8, ha="left", va="bottom")
+    fig.text(0.01 + 5 * 0.09, 0.005, "Palm", color="tomato",
+             fontsize=8, ha="left", va="bottom")
+
+    plt.suptitle("Average gesture per cluster — multi-view",
+                 color="white", fontsize=13, y=1.01)
+    plt.tight_layout()
+    plt.savefig(f"{FIG_DIR}/clusters_average_multiview.png",
+                dpi=150, bbox_inches="tight", facecolor="#0d1117")
+    plt.show()
 
 # Pick whichever view you want:
-plot_clusters_as_hands(D, labels, Kideal, samples_per_cluster=30, mode="2d")
-plot_clusters_as_hands(D, labels, Kideal, samples_per_cluster=30, mode="3d")
+# plot_clusters_as_hands(D, labels, Kideal, samples_per_cluster=30, mode="2d")
+# plot_clusters_as_hands(D, labels, Kideal, samples_per_cluster=30, mode="3d")
 # plot_clusters_as_hands(D, labels, Kideal, samples_per_cluster=5, mode="both")  # side-by-side rows
+
+# plot_average_gestures(D, labels, Kideal, mode="2d")
+plot_average_gestures(D, labels, Kideal, mode="3d")
+# plot_average_gestures(D, labels, Kideal, mode="both")  # 2D top row, 3D bottom row
+
+plot_average_gestures_multiview(D, labels, Kideal)
+

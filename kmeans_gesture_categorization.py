@@ -412,3 +412,40 @@ plt.ylabel("Silhouette Score")
 plt.title("Silhouette Method")
 plt.grid()
 plt.show()
+
+
+# PCA projection (your new “main plot”)
+
+pca = PCA(n_components=2)
+X_2d = pca.fit_transform(X)
+
+# plt.figure(figsize=(7,6))
+plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
+
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.title("Gestures in feature space (PCA)")
+plt.grid()
+plt.show()
+
+# pca = PCA(n_components=2)
+# D_2d = pca.fit_transform(D)
+
+# plt.figure(figsize=(7,6))
+# plt.scatter(D_2d[:, 0], D_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
+
+# plt.xlabel("PC1")
+# plt.ylabel("PC2")
+# plt.title("Gestures in feature space (PCA)")
+# plt.grid()
+# plt.show()
+
+
+centroids_2d = pca.transform(kmeans.cluster_centers_)
+
+plt.figure(figsize=(7,6))
+plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.6)
+plt.scatter(centroids_2d[:, 0], centroids_2d[:, 1], c='black', s=150, marker='x')
+
+plt.title("Clusters + centroids, PCA space K={}".format(Kideal))
+plt.savefig(os.path.join(FIG_DIR, "kmeans_visual_feature.png"), dpi=300, bbox_inches='tight')
