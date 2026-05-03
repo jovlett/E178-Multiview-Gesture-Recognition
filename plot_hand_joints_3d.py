@@ -30,12 +30,19 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Joint definitions
 # ---------------------------------------------------------------------------
+# FINGER_PREFIXES = {
+#     "Thumb":   "TH",
+#     "Index":   "F1",
+#     "Middle":  "F2",
+#     "Ring":    "F3",
+#     "Pinky":   "F4",
+# }
 FINGER_PREFIXES = {
     "Thumb":   "TH",
-    "Index":   "F1",
-    "Middle":  "F2",
-    "Ring":    "F3",
-    "Pinky":   "F4",
+    "Pinky":   "F1",
+    "Ring":     "F2",
+    "Middle":    "F3",
+    "Index":   "F4",
 }
 FINGER_JOINTS = ["KNU1_B", "KNU1_A", "KNU2_A", "KNU3_A"]
 

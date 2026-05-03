@@ -6,6 +6,7 @@ from scipy import stats
 import matplotlib as mpl
 mpl.rcParams['text.usetex'] = True
 import os
+from sklearn.cluster import KMeans
 
 FIG_DIR = "figures"
 if not os.path.exists(FIG_DIR):
@@ -18,6 +19,14 @@ FINGER_PREFIXES = {
     "Ring":    "F3",
     "Pinky":   "F4",
 }
+
+# FINGER_PREFIXES = {
+#     "Thumb":   "TH",
+#     "Pinky":   "F1",
+#     "Ring":  "F2",
+#     "Middle":    "F3",
+#     "Index":   "F4",
+# }
 
 FINGER_JOINTS = ["KNU1_B", "KNU1_A", "KNU2_A", "KNU3_A"]
 
@@ -49,6 +58,8 @@ def load_data():
 D = load_data()
 N = len(D)
 P = np.size(D[0])
+
+### FUNCTIONS FOR K-MEANS CLUSTERING ###
 
 
 def initialize_centroids(K, D, random_seed=None):
@@ -200,9 +211,89 @@ def K_iteration(D, ensemblesize, maxK, random_seed=None):
 
     return best_cost
 
+### Function features of the hand ###
+
+## Redefine the features ##
+def row_to_points(row):
+    return row.reshape(-1, 3)  # (21, 3)
+def center_hand(points):
+    palm = points[0]
+    return points - palm
+def normalize_scale(points):
+    scale = np.linalg.norm(points)
+    return points / scale if scale > 0 else points
+def radial_distances(points):
+    return np.linalg.norm(points, axis=1)  # (21,)
+# palm = index 0
+# then fingers in order, 4 joints each
+
+def get_fingertip_indices():
+    tips = []
+    base = 1
+    for i in range(5):  # 5 fingers
+        tips.append(base + 3)  # last joint of each finger
+        base += 4
+    return tips
+
+from itertools import combinations
+
+def fingertip_distances(points):
+    tips = get_fingertip_indices()
+    dists = []
+    for i, j in combinations(tips, 2):
+        d = np.linalg.norm(points[i] - points[j])
+        dists.append(d)
+    return np.array(dists)  # (10,)
+
+def fingertip_angles(points):
+    tips = get_fingertip_indices()
+    angles = []
+
+    for i, j in combinations(tips, 2):
+        v1 = points[i]
+        v2 = points[j]
+
+        cos_theta = np.dot(v1, v2) / (
+            np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-8
+        )
+        angles.append(np.arccos(np.clip(cos_theta, -1, 1)))
+
+    return np.array(angles)  # (10,)
+
+def finger_lengths(points):
+    lengths = []
+    base = 1
+    for i in range(5):
+        finger_joints = points[base:base+4]
+        length = np.sum(np.linalg.norm(np.diff(finger_joints, axis=0), axis=1))
+        lengths.append(length)
+        base += 4
+    return np.array(lengths)  # (5,)
+
+def extract_features_from_row(row):
+    points = row_to_points(row)
+    points = center_hand(points)
+    points = normalize_scale(points)
+
+    radial = radial_distances(points)          # 21
+    tip_dists = fingertip_distances(points)    # 10
+    tip_angles = fingertip_angles(points)      # 10
+    lengths = finger_lengths(points)           # 5
+
+    return np.concatenate([radial, tip_dists, tip_angles, lengths])
+
+def build_feature_matrix(D):
+    return np.array([extract_features_from_row(row) for row in D])
+
+
+##### Actual execution ####
+X = build_feature_matrix(D)
+# optional normalization feature matrix
+from sklearn.preprocessing import StandardScaler
+X = StandardScaler().fit_transform(X)
 ensemblesize = 20
 maxK = 10
-best_cost = K_iteration(D, ensemblesize, maxK, random_seed=452)
+best_cost = K_iteration(X, ensemblesize, maxK, random_seed=452)
 
 
 fig, ax = plt.subplots(figsize=(8, 5), nrows=2, sharex=True)
@@ -228,28 +319,33 @@ ax[1].grid()
 ax[1].set_ylabel("Cost improvement")
 ax[1].set_xlabel("K")
 
+plt.title(f"K-means clustering Cost vs K (ensemblesize={ensemblesize})")
+plt.savefig(os.path.join(FIG_DIR, "kmeans_cost.png"), dpi=300, bbox_inches='tight')
 plt.show()
 
-Kideal = 4
+## From the plot, we can choose K=9 as a good balance between cost and simplicity
+Kideal = 9
 
-best_run = ensemble_run(Kideal, D, ensemblesize=20, random_seed=5423)
+best_run = ensemble_run(Kideal, X, ensemblesize=20, random_seed=5423)
 
 optC = best_run["C"]
 optgamma = best_run["gamma"]
 
 labels = np.argmax(optgamma, axis=1)
 
+## Visualize the clusters in 2D using PCA
 from sklearn.decomposition import PCA
 
 pca = PCA(n_components=2)
-D_2d = pca.fit_transform(D)
+X_2d = pca.fit_transform(X)
 C_2d = pca.transform(optC)
 
 plt.figure(figsize=(7,6))
-plt.scatter(D_2d[:, 0], D_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
+plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
 plt.scatter(C_2d[:, 0], C_2d[:, 1], c='black', marker='x', s=150)
 
 plt.title(f"K-means clustering (K={Kideal})")
+plt.savefig(os.path.join(FIG_DIR, "kmeans_visual.png"), dpi=300, bbox_inches='tight')
 # plt.show()
 
 for k in range(Kideal):
@@ -275,3 +371,44 @@ results = {
 
 with open("data/kmeans_gesture_results.pickle", "wb") as f:
     pickle.dump(results, f)
+
+print(f'kideal = {Kideal}, cost = {best_run["cost"]}')
+
+
+
+## Finding Kideal using the elbow method
+
+costs = []
+K_range = range(1, 10)
+
+for K in K_range:
+    kmeans = KMeans(n_clusters=K, n_init=10, random_state=0)
+    kmeans.fit(X)
+    costs.append(kmeans.inertia_)  # same as your cost
+
+plt.figure(figsize=(6,4))
+plt.plot(K_range, costs, marker='o')
+plt.xlabel("K")
+plt.ylabel("Cost (inertia)")
+plt.title("Elbow Method")
+plt.grid()
+plt.show()
+
+# 'silhouette_score' can also be used to evaluate clustering quality for different K values, but it requires K >= 2.
+from sklearn.metrics import silhouette_score
+
+scores = []
+
+for K in range(2, 10):  # silhouette needs K >= 2
+    kmeans = KMeans(n_clusters=K, n_init=10, random_state=0)
+    labels = kmeans.fit_predict(X)
+    score = silhouette_score(X, labels)
+    scores.append(score)
+
+plt.figure(figsize=(6,4))
+plt.plot(range(2, 10), scores, marker='o')
+plt.xlabel("K")
+plt.ylabel("Silhouette Score")
+plt.title("Silhouette Method")
+plt.grid()
+plt.show()
