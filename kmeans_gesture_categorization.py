@@ -3,6 +3,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
+import matplotlib as mpl
+mpl.rcParams['text.usetex'] = True
+import os
+
+FIG_DIR = "figures"
+if not os.path.exists(FIG_DIR):
+    os.makedirs(FIG_DIR, exist_ok=True)
 
 FINGER_PREFIXES = {
     "Thumb":   "TH",
@@ -231,6 +238,19 @@ optC = best_run["C"]
 optgamma = best_run["gamma"]
 
 labels = np.argmax(optgamma, axis=1)
+
+from sklearn.decomposition import PCA
+
+pca = PCA(n_components=2)
+D_2d = pca.fit_transform(D)
+C_2d = pca.transform(optC)
+
+plt.figure(figsize=(7,6))
+plt.scatter(D_2d[:, 0], D_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
+plt.scatter(C_2d[:, 0], C_2d[:, 1], c='black', marker='x', s=150)
+
+plt.title(f"K-means clustering (K={Kideal})")
+# plt.show()
 
 for k in range(Kideal):
     indices = np.where(labels == k)[0]
