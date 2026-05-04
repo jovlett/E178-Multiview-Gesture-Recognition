@@ -382,7 +382,7 @@ costs = []
 K_range = range(5, 20)
 
 for K in K_range:
-    kmeans = KMeans(n_clusters=K, n_init=10, random_state=0)
+    kmeans = KMeans(n_clusters=K, n_init=10, random_state=0, tol=1e-4)
     kmeans.fit(X)
     costs.append(kmeans.inertia_)  # same as your cost
 
@@ -400,7 +400,7 @@ from sklearn.metrics import silhouette_score
 scores = []
 
 for K in range(2, 20):  # silhouette needs K >= 2
-    kmeans = KMeans(n_clusters=K, n_init=10, random_state=0)
+    kmeans = KMeans(n_clusters=K, n_init=10, random_state=0, tol=1e-4)
     labels = kmeans.fit_predict(X)
     score = silhouette_score(X, labels)
     scores.append(score)
