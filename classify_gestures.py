@@ -4,7 +4,8 @@ classify_gestures.py
 Open-set multi-class hand gesture classification.
 
 The key design principle is **open-set**: the models are trained on 8 known
-gesture classes but the unlabeled pool may contain hand poses that don't
+gesture classes but the unlabeled pool may contain 
++hand poses that don't
 belong to any of them.  Rather than forcing every frame into a known class
 (closed-set / pigeonhole), each model independently decides whether it is
 confident enough to label a frame.  Frames that no model claims confidently
