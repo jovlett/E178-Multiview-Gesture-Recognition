@@ -1,4 +1,0 @@
-Model,CV Acc  (mean),CV Acc  (std),CV F1   (mean),CV F1   (std),Train Acc (mean)
-Logistic Regression,1.0,0.0,1.0,0.0,1.0
-MLP,1.0,0.0,1.0,0.0,1.0
-Random Forest,1.0,0.0,1.0,0.0,1.0

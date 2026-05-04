@@ -35,7 +35,7 @@ def col(prefix, suffix, axis):
 
 
 def load_data():
-    df = pd.read_csv("data/normalised_hand_data.csv")
+    df = pd.read_csv("raw data/normalised_hand_data.csv")
 
     coord_cols = [
         "PALM_POSITION_X",
