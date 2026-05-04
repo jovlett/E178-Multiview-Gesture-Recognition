@@ -463,3 +463,8 @@ plot_average_gestures(D, labels, Kideal, mode="3d")
 
 plot_average_gestures_multiview(D, labels, Kideal)
 
+df = pd.read_csv("data/normalised_hand_data.csv")
+
+df['Cluster_Number'] = labels
+
+df.to_csv("data/normalised_hand_data_cluster", index=False)
