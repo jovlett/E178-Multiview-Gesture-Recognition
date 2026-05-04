@@ -1,0 +1,57 @@
+import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+
+# =========================
+# Load dataset
+# =========================
+df = pd.read_csv("data/normalised_hand_data_with_clusters_12.csv")
+
+X = df.drop(columns=["video_id", "frame_id", "Cluster_Number"]).values
+y = df["Cluster_Number"].values.astype(int)
+
+print("X shape:", X.shape)
+print("y shape:", y.shape)
+print("Labels:", np.unique(y))
+
+
+# =========================
+# Train/validation split
+# =========================
+Xtrain, Xvalid, ytrain, yvalid = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=1,
+    stratify=y
+)
+
+
+# =========================
+# Random Forest model
+# =========================
+rf_model = RandomForestClassifier(
+    n_estimators=100,     # number of decision trees
+    random_state=1,       # makes results repeatable
+    n_jobs=-1             # uses all available CPU cores
+)
+
+rf_model.fit(Xtrain, ytrain)
+
+
+# =========================
+# Predict validation set
+# =========================
+valid_pred = rf_model.predict(Xvalid)
+
+print("\nFinal validation accuracy:", accuracy_score(yvalid, valid_pred))
+
+print("\nConfusion matrix:")
+print(confusion_matrix(yvalid, valid_pred))
+
+print("\nClassification report:")
+print(classification_report(yvalid, valid_pred))
