@@ -173,7 +173,7 @@ X = StandardScaler().fit_transform(X)
 # plt.show()
 
 
-Kideal = 5
+Kideal = 10
 kmeans = KMeans(n_clusters=Kideal, n_init=10, random_state=0)
 labels = kmeans.fit_predict(X)
 
@@ -463,3 +463,8 @@ plot_average_gestures(D, labels, Kideal, mode="3d")
 
 plot_average_gestures_multiview(D, labels, Kideal)
 
+df = pd.read_csv("data/normalised_hand_data.csv")
+
+df['Cluster_Number'] = labels
+
+df.to_csv("data/normalised_hand_data_clusters_10.csv", index=False)
