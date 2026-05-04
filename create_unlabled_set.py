@@ -45,7 +45,7 @@ EXCLUDED_VIDEOS = {"data_18"}
 
 # ── Load ───────────────────────────────────────────────────────────────────────
 prototype = pd.read_csv("data/prototype_dataset.csv")
-raw       = pd.read_csv("data/normalised_hand_data.csv")
+raw       = pd.read_csv("raw data/normalised_hand_data.csv")
 
 print(f"Prototype rows        : {len(prototype):>6}")
 print(f"Raw rows (before excl): {len(raw):>6}")

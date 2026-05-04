@@ -266,7 +266,7 @@ def render_video(video_id: str,
 def main():
     parser = argparse.ArgumentParser(
         description="Generate per-video MP4 animations of hand joint motion.")
-    parser.add_argument("--input",  default="data/normalised_hand_data.csv",
+    parser.add_argument("--input",  default="raw data/normalised_hand_data.csv",
                         help="Normalised hand data CSV")
     parser.add_argument("--outdir", default="videos",
                         help="Output directory for MP4 files (default: videos/)")
