@@ -292,7 +292,7 @@ X = build_feature_matrix(D)
 from sklearn.preprocessing import StandardScaler
 X = StandardScaler().fit_transform(X)
 ensemblesize = 20
-maxK = 10
+maxK = 20
 best_cost = K_iteration(X, ensemblesize, maxK, random_seed=452)
 
 
@@ -379,7 +379,7 @@ print(f'kideal = {Kideal}, cost = {best_run["cost"]}')
 ## Finding Kideal using the elbow method
 
 costs = []
-K_range = range(1, 10)
+K_range = range(5, 20)
 
 for K in K_range:
     kmeans = KMeans(n_clusters=K, n_init=10, random_state=0)
@@ -399,14 +399,14 @@ from sklearn.metrics import silhouette_score
 
 scores = []
 
-for K in range(2, 10):  # silhouette needs K >= 2
+for K in range(2, 20):  # silhouette needs K >= 2
     kmeans = KMeans(n_clusters=K, n_init=10, random_state=0)
     labels = kmeans.fit_predict(X)
     score = silhouette_score(X, labels)
     scores.append(score)
 
 plt.figure(figsize=(6,4))
-plt.plot(range(2, 10), scores, marker='o')
+plt.plot(range(2, 20), scores, marker='o')
 plt.xlabel("K")
 plt.ylabel("Silhouette Score")
 plt.title("Silhouette Method")
@@ -419,7 +419,7 @@ plt.show()
 pca = PCA(n_components=2)
 X_2d = pca.fit_transform(X)
 
-# plt.figure(figsize=(7,6))
+plt.figure(figsize=(7,6))
 plt.scatter(X_2d[:, 0], X_2d[:, 1], c=labels, cmap='tab10', alpha=0.7)
 
 plt.xlabel("PC1")
