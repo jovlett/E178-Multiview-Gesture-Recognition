@@ -173,7 +173,7 @@ X = StandardScaler().fit_transform(X)
 # plt.show()
 
 
-Kideal = 5
+Kideal = 10
 kmeans = KMeans(n_clusters=Kideal, n_init=10, random_state=0)
 labels = kmeans.fit_predict(X)
 
@@ -467,4 +467,4 @@ df = pd.read_csv("data/normalised_hand_data.csv")
 
 df['Cluster_Number'] = labels
 
-df.to_csv("data/normalised_hand_data_cluster", index=False)
+df.to_csv("data/normalised_hand_data_clusters_10.csv", index=False)

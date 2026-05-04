@@ -6,12 +6,15 @@ from scipy import stats
 import matplotlib as mpl
 mpl.rcParams['text.usetex'] = True
 import os
+FIG_DIR = "figures"
+if not os.path.exists(FIG_DIR):
+    os.makedirs(FIG_DIR, exist_ok=True)
 
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
-df = pd.read_csv("data/normalised_hand_data_with_clusters.csv")
+# df = pd.read_csv("data/normalised_hand_data_with_clusters_12.csv")
 
 # # 1. THE MATH: Function to calculate flexion angles
 # def get_finger_angle(df, prefix):
@@ -318,7 +321,7 @@ mpl.rcParams['text.usetex'] = False
 
 
 # 1. Load the dataset
-df = pd.read_csv("data/normalised_hand_data_with_clusters.csv")
+df = pd.read_csv("data/normalised_hand_data_with_clusters_12.csv")
 
 # 2. THE MATH: Function to calculate flexion angles
 def get_finger_angle(df, prefix):
@@ -355,6 +358,10 @@ cluster_col = 'Cluster_Label' if 'Cluster_Label' in df.columns else 'Cluster_Num
 # Define features (X) and target (y)
 X = df[angle_cols].values
 y = df[cluster_col].values
+
+# Number of clusters 
+num_of_cluster = df["Cluster_Number"].max() + 1
+
 
 # 4. DATA SPLITTING: 80% for training, 20% for testing
 X_train, X_test, y_train, y_test = train_test_split(
@@ -407,8 +414,8 @@ print("\n--- Confusion Matrix ---")
 conf_matrix = confusion_matrix(y_test, y_pred)
 test_matrix_df = pd.DataFrame(
     conf_matrix, 
-    index=[f"True Clus {i}" for i in range(5)], 
-    columns=[f"Pred Clus {i}" for i in range(5)]
+    index=[f"True Clus {i}" for i in range(num_of_cluster)], 
+    columns=[f"Pred Clus {i}" for i in range(num_of_cluster)]
 )
 print(test_matrix_df)
 
@@ -422,4 +429,5 @@ plt.ylabel("Validation Accuracy")
 plt.grid(True, linestyle=':')
 plt.legend()
 plt.tight_layout()
+plt.savefig(os.path.join(FIG_DIR, "regularization_plot.png"), dpi=300, bbox_inches='tight')
 plt.show()

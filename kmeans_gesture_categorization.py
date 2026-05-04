@@ -291,7 +291,7 @@ X = build_feature_matrix(D)
 # optional normalization feature matrix
 from sklearn.preprocessing import StandardScaler
 X = StandardScaler().fit_transform(X)
-ensemblesize = 20
+ensemblesize = 40
 maxK = 20
 best_cost = K_iteration(X, ensemblesize, maxK, random_seed=452)
 
