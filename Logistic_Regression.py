@@ -321,7 +321,7 @@ mpl.rcParams['text.usetex'] = False
 
 
 # 1. Load the dataset
-df = pd.read_csv("data/normalised_hand_data_with_clusters_12.csv")
+df = pd.read_csv("data/normalised_hand_data_with_clusters.csv")
 
 # 2. THE MATH: Function to calculate flexion angles
 def get_finger_angle(df, prefix):

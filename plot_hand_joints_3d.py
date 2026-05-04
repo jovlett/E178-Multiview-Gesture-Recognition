@@ -312,7 +312,7 @@ def save_plot(df, idx, save_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Plot hand joints in 3D.")
-    parser.add_argument("--csv",   default="data/normalised_hand_data.csv")
+    parser.add_argument("--csv",   default="raw data/normalised_hand_data.csv")
     parser.add_argument("--index", type=int, default=None,
                         help="Starting row index (0-based)")
     parser.add_argument("--frame", type=str, default=None,
