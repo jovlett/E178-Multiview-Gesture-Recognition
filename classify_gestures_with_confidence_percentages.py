@@ -499,7 +499,7 @@ def plot_agreement_scatter(results_df, confidences):
 def plot_per_pose_confidence(results_df):
     """
     For each classified gesture, plot the confidence scores from all 3 models
-    as a strip/swarm-style scatter — one column per model, colored by model.
+    as a strip/swarm-style scatter — one subplot per pose (2x4 grid).
     Only includes rows where ensemble_open_set != UNKNOWN.
     """
     path = os.path.join(OUT_DIR, "per_pose_confidence.png")
@@ -518,15 +518,17 @@ def plot_per_pose_confidence(results_df):
     # Only classified rows
     df = results_df[results_df["ensemble_open_set"] != UNKNOWN].copy()
     poses = sorted(df["ensemble_open_set"].unique())
-    n_poses = len(poses)
+
+    # --- Grid setup (2x4) ---
+    n_rows, n_cols = 2, 4
+    max_plots = n_rows * n_cols
 
     fig, axes = plt.subplots(
-        1, n_poses,
-        figsize=(4 * n_poses, 6),
+        n_rows, n_cols,
+        figsize=(4 * n_cols, 5 * n_rows),
         sharey=True
     )
-    if n_poses == 1:
-        axes = [axes]
+    axes = axes.flatten()
 
     fig.suptitle(
         "Per-pose confidence distribution by model\n(classified frames only)",
@@ -535,24 +537,27 @@ def plot_per_pose_confidence(results_df):
 
     x_positions = {name: i for i, name in enumerate(model_cols.keys())}
 
-    for ax, pose in zip(axes, poses):
+    # --- Plot each pose ---
+    for i, pose in enumerate(poses):
+        if i >= max_plots:
+            break
+
+        ax = axes[i]
         pose_df = df[df["ensemble_open_set"] == pose]
 
         for model_name, col in model_cols.items():
             vals = pose_df[col].dropna().values
             x_base = x_positions[model_name]
 
-            # Jitter x so overlapping points spread out
             jitter = np.random.uniform(-0.15, 0.15, size=len(vals))
 
             ax.scatter(
                 x_base + jitter, vals,
                 color=model_colors[model_name],
-                alpha=0.5, s=18, zorder=3,
-                label=model_name
+                alpha=0.5, s=18, zorder=3
             )
 
-            # Overlay median line
+            # Median line
             if len(vals) > 0:
                 median = np.median(vals)
                 ax.plot(
@@ -568,11 +573,14 @@ def plot_per_pose_confidence(results_df):
         ax.set_ylim(0, 105)
         ax.axhline(PROBA_THRESHOLD * 100, color="grey", ls="--", lw=1, alpha=0.6)
         ax.grid(axis="y", alpha=0.3)
-        ax.set_xlabel("")
+
+    # Hide unused axes
+    for j in range(len(poses), max_plots):
+        axes[j].axis("off")
 
     axes[0].set_ylabel("Confidence (%)")
 
-    # Single shared legend
+    # --- Shared legend ---
     handles = [
         plt.Line2D([0], [0], marker='o', color='w',
                    markerfacecolor=c, markersize=8, label=n)
@@ -582,12 +590,18 @@ def plot_per_pose_confidence(results_df):
         plt.Line2D([0], [0], color='grey', ls='--', lw=1,
                    label=f"Threshold ({int(PROBA_THRESHOLD*100)}%)")
     )
-    fig.legend(handles=handles, loc="upper right",
-               bbox_to_anchor=(1.12, 1.0), fontsize=9)
+
+    fig.legend(
+        handles=handles,
+        loc="upper right",
+        bbox_to_anchor=(1.12, 1.0),
+        fontsize=9
+    )
 
     plt.tight_layout()
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
+
     print(f"  Saved -> {path}")
 
 
