@@ -254,7 +254,7 @@ class HandViewerMultiview:
 if __name__ == "__main__":
     # Use raw strings (r"") to avoid "invalid escape sequence" errors
     pred_path = r"outputs\final outputs\predictions_open_set.csv"
-    data_path = r"data\normalised_hand_data_DATA18REMOVED.csv"
+    data_path = r"data\cleaned_normalised_data_NOdata18.csv"
 
     try:
         preds = pd.read_csv(pred_path)

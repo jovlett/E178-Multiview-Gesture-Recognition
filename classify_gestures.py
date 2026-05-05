@@ -156,8 +156,8 @@ def save_confidence_extremes(results_df, confidences):
     showing how uncertain those frames truly were.
 
     Saves:
-      final outputs/confidence_extremes.csv   — machine-readable table
-      final outputs/confidence_extremes.png   — visual summary
+      outputs/final outputs/confidence_extremes.csv   — machine-readable table
+      outputs/final outputs/confidence_extremes.png   — visual summary
     """
     avg_conf = np.mean(np.column_stack(confidences), axis=1)
     results_df = results_df.copy()
