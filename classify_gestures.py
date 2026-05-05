@@ -71,7 +71,7 @@ os.makedirs(OUT_DIR, exist_ok=True)
 # ── Constants ──────────────────────────────────────────────────────────────────
 UNKNOWN         = "UNKNOWN"
 PROBA_THRESHOLD = 0.80   # minimum confidence for any model to claim a label
-MIN_AGREE       = 3      # all three models must agree (unanimous)
+MIN_AGREE       = 2      # all three models must agree (unanimous)
 
 # ── Column definitions ─────────────────────────────────────────────────────────
 FINGER_PREFIXES = {"Thumb": "TH", "Pinky": "F1", "Ring": "F2",
@@ -530,7 +530,7 @@ def main():
               f"({n_unk / len(preds_open) * 100:.1f}%)")
 
     # 6. Ensemble
-    results["ensemble_open_set"] = ensemble_majority(all_preds, min_agree=2)
+    results["ensemble_open_set"] = ensemble_majority(all_preds, min_agree=MIN_AGREE)
 
     # 7. Report
     print("\n[6] Open-set ensemble results ...")
