@@ -253,7 +253,7 @@ class HandViewerMultiview:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     # Use raw strings (r"") to avoid "invalid escape sequence" errors
-    pred_path = r"final outputs\predictions_open_set.csv"
+    pred_path = r"outputs\final outputs\predictions_open_set.csv"
     data_path = r"data\normalised_hand_data_DATA18REMOVED.csv"
 
     try:
