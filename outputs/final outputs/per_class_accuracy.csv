@@ -1,0 +1,9 @@
+gesture,logistic_regression,mlp,random_forest,ensemble_avg
+1_FINGER_POINT,1.0,1.0,1.0,1.0
+CLOSED_FIST,1.0,1.0,1.0,1.0
+HANG_LOOSE,1.0,1.0,1.0,1.0
+OK,1.0,1.0,1.0,1.0
+OPEN_PALM,1.0,1.0,1.0,1.0
+PEACE_SIGN,1.0,1.0,1.0,1.0
+ROCK_ON,1.0,1.0,1.0,1.0
+THUMBS_UP,1.0,1.0,1.0,1.0

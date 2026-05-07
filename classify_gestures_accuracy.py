@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.colors import LinearSegmentedColormap
 import os
-import time
 
 # ── Output folders ─────────────────────────────────────────────────────────────
 OUT_DIR   = "outputs/final outputs"
@@ -130,6 +129,97 @@ def run_cv(models, X, y, n_splits=5, seed=42):
             "Train Acc (mean)": res["train_accuracy"].mean(),
         })
     return pd.DataFrame(rows).set_index("Model")
+
+
+# ── Per-class accuracy on reference set ───────────────────────────────────────
+def compute_per_class_accuracy(models, X_ref, y_ref):
+    """
+    For each fitted model, compute per-class accuracy on the reference set.
+    Returns a DataFrame indexed by gesture class with one column per model
+    plus an 'ensemble_avg' column (mean across models).
+
+    Note: these are in-sample accuracies (models were trained on this data),
+    so they serve as an upper-bound / sanity-check reference, not holdout
+    accuracy. Use CV scores for generalisation estimates.
+    """
+    classes = np.unique(y_ref)
+    rows = {}
+    for name, model in models.items():
+        preds   = model.predict(X_ref)
+        col_key = name.lower().replace(" ", "_")
+        rows[col_key] = {
+            cls: np.mean(preds[y_ref == cls] == cls) for cls in classes
+        }
+
+    acc_df = pd.DataFrame(rows, index=classes)
+    acc_df.index.name = "gesture"
+    acc_df["ensemble_avg"] = acc_df.mean(axis=1)
+    return acc_df.sort_index()
+
+
+def plot_per_class_accuracy(acc_df):
+    """
+    Grouped horizontal bar chart showing per-class accuracy for each model
+    plus the ensemble average.
+    """
+    path = os.path.join(OUT_DIR, "per_class_accuracy.png")
+
+    gestures    = acc_df.index.tolist()
+    model_cols  = [c for c in acc_df.columns if c != "ensemble_avg"]
+    palette     = {"logistic_regression": "#4c72b0",
+                   "mlp":                 "#dd8452",
+                   "random_forest":       "#55a868",
+                   "ensemble_avg":        "#c44e52"}
+    col_labels  = {"logistic_regression": "Logistic Reg.",
+                   "mlp":                 "MLP",
+                   "random_forest":       "Random Forest",
+                   "ensemble_avg":        "Ensemble Avg"}
+
+    n_gestures  = len(gestures)
+    all_cols    = model_cols + ["ensemble_avg"]
+    n_cols      = len(all_cols)
+    bar_h       = 0.15
+    y_positions = np.arange(n_gestures)
+
+    fig, ax = plt.subplots(figsize=(13, max(5, n_gestures * 0.9 + 2)))
+    fig.suptitle(
+        "Per-Class Accuracy on Reference Set (in-sample)\n"
+        "Use CV scores for holdout estimates",
+        fontsize=12, y=1.01
+    )
+
+    for i, col in enumerate(all_cols):
+        offset = (i - n_cols / 2 + 0.5) * bar_h
+        vals   = acc_df[col].reindex(gestures).fillna(0).values
+        bars   = ax.barh(
+            y_positions + offset, vals,
+            height=bar_h * 0.88,
+            color=palette.get(col, "#888"),
+            label=col_labels.get(col, col),
+            edgecolor="white", linewidth=0.4,
+            alpha=0.9 if col != "ensemble_avg" else 1.0,
+            zorder=3
+        )
+        for bar, v in zip(bars, vals):
+            if v > 0.05:
+                ax.text(
+                    v + 0.005, bar.get_y() + bar.get_height() / 2,
+                    f"{v:.0%}", va="center", fontsize=7.2,
+                    color=palette.get(col, "#888")
+                )
+
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels(gestures, fontsize=10)
+    ax.set_xlabel("Accuracy (proportion correct)", fontsize=10)
+    ax.set_xlim(0, 1.12)
+    ax.axvline(1.0, color="grey", lw=0.8, ls="--")
+    ax.grid(axis="x", alpha=0.3, zorder=0)
+    ax.legend(loc="lower right", fontsize=9, framealpha=0.7)
+    ax.invert_yaxis()
+    plt.tight_layout()
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved -> {path}")
 
 
 # ── Feature summary ───────────────────────────────────────────────────────────
@@ -433,7 +523,6 @@ def plot_agreement_scatter(results_df, confidences):
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 def main():
-    start = time.time()
     print("=" * 60)
     print("  Hand Gesture Open-Set Classification (3-Model Ensemble)")
     print("=" * 60)
@@ -467,6 +556,16 @@ def main():
         print(f"    {name:<25}  train acc = {train_acc:.4f}")
     plot_confusion_matrices(models, X_ref, y_ref)
 
+    # ── Per-class accuracy on the reference set ───────────────────────────────
+    print("\n[4b] Per-class accuracy on reference set (in-sample) ...")
+    per_class_acc = compute_per_class_accuracy(models, X_ref, y_ref)
+    print()
+    print(per_class_acc.to_string(float_format=lambda x: f"{x:.4f}"))
+    acc_path = os.path.join(OUT_DIR, "per_class_accuracy.csv")
+    per_class_acc.to_csv(acc_path)
+    print(f"\n  Saved -> {acc_path}")
+    plot_per_class_accuracy(per_class_acc)
+
     print("\n[5] Open-set predictions on unlabeled set ...")
     print(f"    A frame is labelled only when at least 2 models confidently agree.\n")
 
@@ -487,6 +586,15 @@ def main():
 
     results["ensemble_open_set"] = ensemble_majority(all_preds, min_agree=MIN_AGREE)
 
+    # ── Model-agreement fraction per frame (proxy for per-frame certainty) ───
+    model_cols = ["logistic_regression", "mlp", "random_forest"]
+    results["model_agreement_pct"] = results[model_cols].apply(
+        lambda row: round(
+            (row.values == row.value_counts().idxmax()).sum() / len(model_cols) * 100, 1
+        ),
+        axis=1
+    )
+
     print("\n[6] Open-set ensemble results ...")
     ens          = results["ensemble_open_set"]
     n_unknown    = (ens == UNKNOWN).sum()
@@ -495,10 +603,17 @@ def main():
     print(f"    Classified     : {n_classified:>6}  ({n_classified / len(ens) * 100:.1f}%)")
     print(f"    UNKNOWN        : {n_unknown:>6}  ({n_unknown / len(ens) * 100:.1f}%)")
     print()
-    print("    Classified gesture breakdown:")
+    print("    Classified gesture breakdown  "
+          "(ref accuracy = in-sample ensemble avg from step 4b):")
     if n_classified > 0:
         for lbl, cnt in ens[ens != UNKNOWN].value_counts().items():
-            print(f"      {lbl:<20}  {cnt:>5}  ({cnt / n_classified * 100:.1f}% of classified)")
+            ref_acc = (
+                per_class_acc.loc[lbl, "ensemble_avg"] * 100
+                if lbl in per_class_acc.index else float("nan")
+            )
+            print(f"      {lbl:<20}  {cnt:>5}  "
+                  f"({cnt / n_classified * 100:.1f}% of classified)  "
+                  f"ref acc={ref_acc:.1f}%")
     else:
         print("      (no frames classified — all marked UNKNOWN)")
 
@@ -516,8 +631,6 @@ def main():
     print("\n[Done]")
     print(f"  All outputs in: {OUT_DIR}/")
     print("=" * 60)
-    end = time.time()
-    print(f"Total run time: {end - start} seconds")
 
 
 if __name__ == "__main__":
